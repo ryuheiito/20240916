@@ -13,14 +13,11 @@ def get_prefecture_city_from_latlon(lat, lon):
         time.sleep(3)  # 各リクエスト間に3秒の遅延を追加
         
         if location:
-            # 住所のコンポーネントを解析
             address = location.raw['address']
             print(f"Raw address data: {address}")  # デバッグ用に取得した住所を表示
 
-            # 都道府県を取得
-            prefecture = address.get('province', '') or address.get('state', '') or address.get('region', '')  # `province`を優先し、なければ`state`や`region`を使用
-            # 市区町村を取得
-            city = address.get('city', '') or address.get('town', '') or address.get('village', '') or address.get('county', '')  # `county`(郡)も確認
+            prefecture = address.get('province', '') or address.get('state', '') or address.get('region', '')
+            city = address.get('city', '') or address.get('town', '') or address.get('village', '') or address.get('county', '')
             return f"{prefecture} {city}".strip() if prefecture and city else None
         else:
             return None
@@ -37,7 +34,6 @@ def search_map_urls(query):
     response = requests.get(search_url, headers=headers)
     soup = BeautifulSoup(response.text, "html.parser")
     
-    # 結果から上位3つのタイトルとURLを取得
     results = []
     for item in soup.find_all('div', class_='tF2Cxc'):
         a_tag = item.find('a', href=True)
@@ -51,7 +47,6 @@ def search_map_urls(query):
 def process_latlon_file(input_file, output_folder):
     df = pd.read_excel(input_file)
 
-    # 出力フォルダの作成
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
@@ -62,11 +57,9 @@ def process_latlon_file(input_file, output_folder):
         lon = row['経度']
         building_name = row['建物名']
         
-        # 緯度経度から「県」と「市区町村」を取得
         address = get_prefecture_city_from_latlon(lat, lon)
         print(f"Address for {building_name}: {address}")
         
-        # マップ検索用のクエリを作成
         if address:
             queries = [
                 f"{address} ゆれやすさマップ",
@@ -76,12 +69,10 @@ def process_latlon_file(input_file, output_folder):
                 f"{address} 内水氾濫"
             ]
             
-            # 検索して結果をまとめる
             for query in queries:
                 print(f"\n検索クエリ: {query}")
                 results = search_map_urls(query)
                 
-                # 検索結果を表示
                 for title, url in results:
                     print(f"タイトル: {title}\nURL: {url}")
                     output_data.append({
@@ -92,8 +83,8 @@ def process_latlon_file(input_file, output_folder):
                         "URL": url
                     })
 
-    # 結果をCSVファイルに保存
-    output_file = os.path.join(output_folder, f"{building_name}_参考資料.csv")
+    # 結果を1つのCSVファイルに保存
+    output_file = os.path.join(output_folder, "参考資料.csv")
     output_df = pd.DataFrame(output_data)
     output_df.to_csv(output_file, index=False, encoding="utf-8-sig")
     print(f"Results saved to {output_file}")
